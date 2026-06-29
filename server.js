@@ -111,6 +111,11 @@ app.post('/api/reviews', async (req, res) => {
       telegram_username: req.body.telegram || req.body.telegram_username,
       rating: Number(req.body.rating || 0) || null,
       text: req.body.text || req.body.review || req.body.message || req.body.comment || ''
+      customerName: req.body.customerName,
+      wantsReply: req.body.wantsReply,
+      replyChannel: req.body.replyChannel,
+      email: req.body.email,
+     photos: Array.isArray(req.body.photos) ? req.body.photos : []
     };
     if (!review.text.trim()) return res.status(400).json({ ok: false, error: 'Review text is required' });
     const id = await saveReview(review);
