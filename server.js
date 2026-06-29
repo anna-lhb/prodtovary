@@ -26,6 +26,11 @@ const FORM_API_TOKEN = process.env.FORM_API_TOKEN || process.env.QR2_FORM_API_TO
 const PUBLIC_URL = process.env.PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
 const BOT_SECRET = process.env.BOT_SECRET || 'feedback-webhook-secret';
 
+const MANAGER_USER_IDS = String(process.env.MANAGER_USER_IDS || '8196996608')
+  .split(',')
+  .map((id) => id.trim())
+  .filter(Boolean);
+
 const stores = JSON.parse(await readFile(new URL('./stores.json', import.meta.url), 'utf8'));
 const sessions = new Map();
 const reviewTickets = new Map();
@@ -52,6 +57,10 @@ if (process.env.DATABASE_URL) {
     status TEXT DEFAULT 'new',
     created_at TIMESTAMPTZ DEFAULT now()
   )`);
+}
+
+function isManager(userId) {
+  return MANAGER_USER_IDS.includes(String(userId));
 }
 
 function tgUrl(method) {
@@ -293,6 +302,15 @@ app.post(`/telegram/${BOT_SECRET}`, async (req, res) => {
     if (callback) {
       const data = callback.data || '';
       const fromName = [callback.from?.first_name, callback.from?.last_name].filter(Boolean).join(' ') || callback.from?.username || 'Администратор';
+
+      if (!isManager(callback.from?.id)) {
+        await telegram('answerCallbackQuery', {
+          callback_query_id: callback.id,
+          text: 'У вас нет прав на обработку отзывов.',
+          show_alert: true
+        });
+        return;
+      }
 
       await telegram('answerCallbackQuery', {
         callback_query_id: callback.id
