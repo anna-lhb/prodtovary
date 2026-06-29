@@ -80,8 +80,13 @@ async function saveReview(review) {
 
 app.get('/', (req, res) => res.json({ ok: true, service: 'feedback-bot', stores: stores.length }));
 app.get('/health', (req, res) => res.json({ ok: true }));
-app.get('/api/stores', (req, res) => res.json({ ok: true, stores }));
-
+app.get('/api/stores', (req, res) => res.json({
+  ok: true,
+  result: {
+    categories: [],
+    stores
+  }
+}));
 app.post('/api/reviews', async (req, res) => {
   try {
     if (FORM_API_TOKEN && req.headers.authorization !== `Bearer ${FORM_API_TOKEN}` && req.body.token !== FORM_API_TOKEN) {
