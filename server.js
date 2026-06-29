@@ -131,14 +131,43 @@ app.post(`/telegram/${BOT_SECRET}`, async (req, res) => {
     const text = msg.text.trim();
     const username = msg.from?.username;
 
-    if (text === '/start' || text === '/review' || !sessions.has(chatId)) {
-      sessions.set(chatId, { step: 'store' });
-      await telegram('sendMessage', {
-        chat_id: chatId,
-        text: 'Здравствуйте! Напишите ID точки из QR или название магазина. Например: miks_1, prod7_sovetskaya, zoo3.'
-      });
-      return;
-    }
+if (text.startsWith('/start')) {
+  const startPayload = text.split(' ')[1];
+
+  if (startPayload) {
+    sessions.set(chatId, {
+      step: 'rating',
+      store_id: startPayload
+    });
+
+    await telegram('sendMessage', {
+      chat_id: chatId,
+      text: `Здравствуйте! Вы оставляете отзыв для точки: ${storeName(startPayload)}.\n\nПоставьте оценку от 1 до 5.`
+    });
+
+    return;
+  }
+
+  sessions.set(chatId, { step: 'store' });
+
+  await telegram('sendMessage', {
+    chat_id: chatId,
+    text: 'Здравствуйте! Выберите точку или напишите ID магазина.'
+  });
+
+  return;
+}
+
+if (text === '/review' || !sessions.has(chatId)) {
+  sessions.set(chatId, { step: 'store' });
+
+  await telegram('sendMessage', {
+    chat_id: chatId,
+    text: 'Напишите ID магазина, например: prod3_saturn, miks_1, zoo3.'
+  });
+
+  return;
+}
 
     const session = sessions.get(chatId);
     if (session.step === 'store') {
