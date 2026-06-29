@@ -87,10 +87,6 @@ function storeAddress(id) {
   return findStore(id)?.address || '';
 }
 
-function normalizePhone(phone) {
-  return String(phone || '').replace(/[^\d+]/g, '');
-}
-
 function isTrue(value) {
   return value === true || value === '1' || value === 1 || value === 'true' || value === 'yes' || value === 'да';
 }
@@ -129,45 +125,27 @@ function reviewMessage(review) {
 }
 
 function reviewKeyboard(review, reviewId) {
-  const rows = [];
-
-  if (review.phone) {
-    rows.push([
+  const rows = [
+    [
       {
-        text: '📞 Позвонить',
-        url: `tel:${normalizePhone(review.phone)}`
-      }
-    ]);
-  }
-
-  if (review.email) {
-    rows.push([
+        text: '👤 Взять в работу',
+        callback_data: `take:${reviewId}`
+      },
       {
-        text: '✉️ Написать email',
-        url: `mailto:${review.email}`
+        text: '✅ Обработано',
+        callback_data: `done:${reviewId}`
       }
-    ]);
-  }
+    ]
+  ];
 
   if (review.telegram_username) {
-    rows.push([
+    rows.unshift([
       {
         text: '💬 Написать в Telegram',
         url: `https://t.me/${String(review.telegram_username).replace(/^@/, '')}`
       }
     ]);
   }
-
-  rows.push([
-    {
-      text: '👤 Взять в работу',
-      callback_data: `take:${reviewId}`
-    },
-    {
-      text: '✅ Обработано',
-      callback_data: `done:${reviewId}`
-    }
-  ]);
 
   return { inline_keyboard: rows };
 }
@@ -184,7 +162,7 @@ async function sendPhotosToAdmin(review) {
     } catch (error) {
       await telegram('sendMessage', {
         chat_id: ADMIN_CHAT_ID,
-        text: `Не удалось отправить фото, ссылка: ${photoUrl}`
+        text: `📎 Фото к отзыву: ${photoUrl}`
       });
     }
   }
@@ -218,15 +196,11 @@ async function sendReviewToAdmin(review) {
   const reviewId = review.reviewId || makeReviewId();
   review.reviewId = reviewId;
 
-  reviewTickets.set(reviewId, {
-    review,
-    status: 'new',
-    text: reviewMessage(review)
-  });
+  const text = reviewMessage(review);
 
   const message = await telegram('sendMessage', {
     chat_id: ADMIN_CHAT_ID,
-    text: reviewMessage(review),
+    text,
     reply_markup: reviewKeyboard(review, reviewId)
   });
 
@@ -235,7 +209,7 @@ async function sendReviewToAdmin(review) {
     status: 'new',
     chat_id: ADMIN_CHAT_ID,
     message_id: message.message_id,
-    text: reviewMessage(review)
+    text
   });
 
   await sendPhotosToAdmin(review);
